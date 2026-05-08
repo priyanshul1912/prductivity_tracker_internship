@@ -1,17 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../utils/api';
 
-const AuthContext = createContext(null);
+const AuthCtx = createContext(null);
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+export function AuthProvider({ children }) {
+  const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       api.get('/auth/me')
-        .then(res => setUser(res.data))
+        .then(r => setUser(r.data))
         .catch(() => localStorage.removeItem('token'))
         .finally(() => setLoading(false));
     } else {
@@ -20,35 +20,29 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password });
-    localStorage.setItem('token', res.data.token);
-    setUser(res.data.user);
-    return res.data;
+    const r = await api.post('/auth/login', { email, password });
+    localStorage.setItem('token', r.data.token);
+    setUser(r.data.user);
   };
 
   const register = async (name, email, password) => {
-    const res = await api.post('/auth/register', { name, email, password });
-    localStorage.setItem('token', res.data.token);
-    setUser(res.data.user);
-    return res.data;
+    const r = await api.post('/auth/register', { name, email, password });
+    localStorage.setItem('token', r.data.token);
+    setUser(r.data.user);
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-  };
+  const logout = () => { localStorage.removeItem('token'); setUser(null); };
 
-  const updateUser = (updatedUser) => setUser(updatedUser);
+  const refresh = async () => {
+    const r = await api.get('/auth/me');
+    setUser(r.data);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+    <AuthCtx.Provider value={{ user, loading, login, register, logout, refresh, setUser }}>
       {children}
-    </AuthContext.Provider>
+    </AuthCtx.Provider>
   );
-};
+}
 
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
-};
+export const useAuth = () => useContext(AuthCtx);
